@@ -1,0 +1,61 @@
+*.py[cod]
+**/local_config.py
+.env/
+.Python
+.DS_store
+man/
+public/
+vault_password
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+.eggs
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+__pycache__
+.tox
+.pytest_cache
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+htmlcov
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+.idea
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+.cache/
+include/
+pip-selfcheck.json
+share/
+report/
+!doc
+reports/
+_build/
+doc/coverage/
+doc/tests.html
