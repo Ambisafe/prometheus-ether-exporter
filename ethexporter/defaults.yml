@@ -1,0 +1,37 @@
+scrape_throttle: 1.0
+initial:
+  urls: !envvar:ETHEXPORTER_RPC_NODES
+    default: '{node0: "http://127.0.0.1:8545"}'
+    constructor: !!python/name:yaml.load
+  nodes: !!python/name:ethexporter.scraper.web3.nodes
+
+eth_gauge: &eth_gauge
+  type: gauge
+  setter: !!python/object/new:operator.attrgetter
+    args:
+    - set
+  options:
+    labels:
+      node: '{node}'
+      url: '{url}'
+
+scrapers:
+  lastblock: !!python/name:ethexporter.scraper.web3.lastblock
+
+metrics:
+  eth_lastblock_num:
+    <<: *eth_gauge
+    description: 'ethereum lastblock'
+    scraper: !!python/name:ethexporter.scraper.web3.eth_lastblock_num
+  eth_lastblock_size:
+    <<: *eth_gauge
+    description: 'ethereum lastblock size'
+    scraper: !!python/name:ethexporter.scraper.web3.eth_lastblock_size
+  eth_gas_limit:
+    <<: *eth_gauge
+    description: 'ethereum gas limit'
+    scraper: !!python/name:ethexporter.scraper.web3.eth_gas_limit
+  eth_gas_used:
+    <<: *eth_gauge
+    description: 'ethereum gas used'
+    scraper: !!python/name:ethexporter.scraper.web3.eth_gas_used

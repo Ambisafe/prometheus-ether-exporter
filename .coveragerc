@@ -1,0 +1,15 @@
+[run]
+omit =
+    *migrations/*
+    *venv/*
+    *test/*
+    .eggs/*
+    .cache/*
+    .tox/*
+    tests/*
+    bin/*
+    lib/*
+    include/*
+    setup.py
+    fabfile.py
+    manage.py
