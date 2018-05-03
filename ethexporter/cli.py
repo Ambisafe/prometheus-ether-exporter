@@ -5,6 +5,8 @@ from functools import lru_cache
 import asyncio
 import prometheus_client.core
 import logging
+import sys
+from toolrack.log import setup_logger
 
 from . import config, context
 
@@ -95,5 +97,13 @@ class Web3Exporter(PrometheusExporterScript):
                 declaration['setter'](_metric)(labeled.value)
                 _log.debug('exposed', extra={'key':name, 'value': labeled.value, 'labels':labels})
 
+    def _setup_logging(self, log_level):
+        """Setup logging for the application and aiohttp."""
+        level = getattr(logging, log_level)
+        names = (
+            'aiohttp.access', 'aiohttp.internal', 'aiohttp.server',
+            'aiohttp.web', 'aiohttp.client', 'asyncio_client', self.name)
+        for name in names:
+            setup_logger(name=name, stream=sys.stderr, level=level)
 
 exporter = Web3Exporter()
