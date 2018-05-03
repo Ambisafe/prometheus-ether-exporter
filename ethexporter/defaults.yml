@@ -35,3 +35,7 @@ metrics:
     <<: *eth_gauge
     description: 'ethereum gas used'
     scraper: !!python/name:ethexporter.scraper.web3.eth_gas_used
+
+gather: !envvar:ETHEXPORTER_GATHER
+    default: 'null'
+    constructor: !!python/name:yaml.load

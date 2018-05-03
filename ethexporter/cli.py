@@ -20,6 +20,7 @@ class Web3Exporter(PrometheusExporterScript):
         # Additional arguments to the script
         parser.add_argument('--rpc', nargs='*', default=None, help='Web3 RPC url(s)')
         parser.add_argument('--nodes', nargs='*', default=[], help='Name(s) for RPC url(s)')
+        parser.add_argument('--gather', nargs='*', default=None, help=f'Limit gathered metrics to {list(config.metrics.keys())!r}')
 
 
     def configure(self, args):
@@ -39,6 +40,14 @@ class Web3Exporter(PrometheusExporterScript):
         self.create_metrics(declarations)
         self._last_request_time = 0
 
+        if args.gather:
+            config.gather = args.gather
+        gather = getattr(config, 'gather', None)
+        if gather is not None:
+            ungather = [metric_name for metric_name in self.registry._metrics if metric_name not in gather]
+            for metric_name in ungather:
+                del self.registry._metrics[metric_name]
+        _log.info('gathering', extra={'metrics': list(self.registry._metrics)})
 
     async def on_application_startup(self, application):
         await context.initial()
@@ -71,6 +80,8 @@ class Web3Exporter(PrometheusExporterScript):
 
     async def scrape_metrics(self, application):
         for name, declaration in self.metrics:
+            if name not in application:
+                continue
             _log.debug(f'{name!r}')
             metric = application[name]
             for labeled in await context[name]:
