@@ -19,10 +19,10 @@ scrapers:
   lastblock: !!python/name:ethexporter.scraper.web3.lastblock
 
 metrics:
-  eth_lastblock_num:
+  eth_lastblock_number:
     <<: *eth_gauge
     description: 'ethereum lastblock'
-    scraper: !!python/name:ethexporter.scraper.web3.eth_lastblock_num
+    scraper: !!python/name:ethexporter.scraper.web3.eth_lastblock_number
   eth_lastblock_size:
     <<: *eth_gauge
     description: 'ethereum lastblock size'

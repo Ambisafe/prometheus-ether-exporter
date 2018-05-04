@@ -9,7 +9,7 @@ async def nodes(context):
         yield LV(await create_ethereum_client(url), {'node': node, 'url': url})
 
 
-async def eth_lastblock_num(context):
+async def eth_lastblock_number(context):
     from ethexporter import LabeledValue as LV
     for node in await context['nodes']:
         try:
@@ -21,7 +21,7 @@ async def eth_lastblock_num(context):
 async def lastblock(context):
     from ethexporter import LabeledValue as LV
     nodes = await context['nodes']
-    lastblocks = await context['eth_lastblock_num']
+    lastblocks = await context['eth_lastblock_number']
     node_lastblocks = defaultdict(list)
     for node in nodes:
         for lastblock in lastblocks:
