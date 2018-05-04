@@ -6,4 +6,4 @@ COPY . /app
 WORKDIR /app
 RUN pip install -e .
 
-ENTRYPOINT ["ethexporter", "-L", "DEBUG", "-H", "0.0.0.0", "-p", "9306"]
+ENTRYPOINT ["ethexporter"]
