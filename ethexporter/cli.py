@@ -86,7 +86,9 @@ class Web3Exporter(PrometheusExporterScript):
                 continue
             _log.debug(f'{name!r}')
             metric = application[name]
-            for labeled in await context[name]:
+            async for labeled in context[name]:
+                if labeled is None:
+                    continue
                 if isinstance(metric, prometheus_client.core._LabelWrapper):
                     label_formats = declaration.get('options', {}).get('labels', {})
                     labels = dict((k, v.format(**labeled.labels)) for (k, v) in label_formats.items())
