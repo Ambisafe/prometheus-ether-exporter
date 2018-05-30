@@ -10,7 +10,8 @@ import inspect
 import logging
 from collections import namedtuple
 import collections.abc
-
+from functools import lru_cache
+import asyncio
 import devconfig.mapping
 
 from ethexporter import config
@@ -33,7 +34,9 @@ class ContextMapping(collections.abc.Mapping):
         self.initial_keys = initial_keys
 
     async def initial(self):
-        [await self[k] for k in self.initial_keys]
+        for k in self.initial_keys:
+            async for v in self[k]:
+                pass
 
     def __iter__(self):
         yield from self._source
@@ -41,39 +44,82 @@ class ContextMapping(collections.abc.Mapping):
     def __len__(self):
         return len(self._source)
 
+    @classmethod
+    @lru_cache(maxsize=1024)
+    def cachelock(cls, name):
+        return asyncio.Lock()
+
+    async def iterscraper(self, scraper, logdata):
+        if inspect.isasyncgenfunction(scraper):
+            items = []
+            self._log.debug(f'scraping {logdata["key"]!r} key with async for', extra=logdata)
+            try:
+                async for item in scraper(self):
+                    yield item
+            except ConnectionError as e:
+                _log.exception(e)
+        elif inspect.iscoroutinefunction(scraper):
+            self._log.debug(f'scraping {logdata["key"]!r} key with await', extra=logdata)
+            try:
+                yield (await scraper(self))
+            except ConnectionError as e:
+                _log.exception(e)
+        elif inspect.isgeneratorfunction(scraper):
+            self._log.debug(f'scraping {logdata["key"]!r} key with list', extra=logdata)
+            try:
+                for item in scraper(self):
+                    yield item
+            except ConnectionError as e:
+                _log.exception(e)
+        elif inspect.isfunction(scraper):
+            self._log.debug(f'scraping {logdata["key"]!r} key with call', extra=logdata)
+            try:
+                yield scraper(self)
+            except ConnectionError as e:
+                _log.exception(e)
+        else:
+            self._log.debug(f'scraping {logdata["key"]!r} key as value', extra=logdata)
+            yield scraper
+
     async def __getitem__(self, name):
         if name not in self._source:
             raise KeyError(name)
-
-        if name not in self._data:
-            logdata = {'context': self, 'key': name}
-            scraper = self._source[name]
-            if inspect.isasyncgenfunction(scraper):
+        await self.cachelock(name)
+        try:
+            if name not in self._data:
+                self._data[name] = []
+                logdata = {'context': self, 'key': name}
+                scraper = self._source[name]
                 items = []
-                self._log.debug(f'caching {name!r} key with async for', extra=logdata)
-                async for item in scraper(self):
+                async for item in self.iterscraper(scraper, logdata):
+                    if isinstance(item, tuple) and len(item) == 2:
+                        item = LabeledValue(*item)
                     items.append(item)
-            elif inspect.iscoroutinefunction(scraper):
-                self._log.debug(f'caching {name!r} key with await', extra=logdata)
-                items = await scraper(self)
-            elif inspect.isgeneratorfunction(scraper):
-                self._log.debug(f'caching {name!r} key with list', extra=logdata)
-                items = list(scraper(self)) 
-            elif inspect.isfunction(scraper):
-                self._log.debug(f'caching {name!r} key with call', extra=logdata)
-                items = scraper(self)
+
+                await asyncio.gather(*[item.value for item in items if isinstance(item, LabeledValue) and isinstance(item.value, asyncio.Future)])
+
+                for item in items:
+                    if isinstance(item, LabeledValue) and isinstance(item.value, asyncio.Future):
+                        item = LabeledValue(item.value.result(), item.labels)
+                    self._data[name].append(item)
+                    yield item
             else:
-                self._log.debug(f'caching {name!r} key as value', extra=logdata)
-                items = scraper
-            self._data[name] = items
+                for item in self._data[name]:
+                    yield item
+        except Exception as e:
+            _log.exception(e)
+            if name in self._data:
+                del self._data[name]
+        finally:
+            self.cachelock(name).release()
 
-        return self._data[name]
-
-    def reset(self):
+    async def reset(self):
         for k in self:
             if k not in self.initial_keys and k in self._data:
                 _log.debug(f'removing non initial {k!r}')
-                del self._data[k]
+                async with self.cachelock(k):
+                    if k in self._data:
+                        del self._data[k]
 
 
 context = ContextMapping()
