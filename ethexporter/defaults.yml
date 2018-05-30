@@ -1,10 +1,22 @@
-scrape_throttle: 1.0
+scrape:
+  throttle: 1
+  maxblocks: !envvar:ETHEXPORTER_SCRAPE_MAXBLOCKS
+    default: 720
+  burst: !envvar:ETHEXPORTER_SCRAPE_BURST
+    default: 10
 initial:
   urls: !envvar:ETHEXPORTER_RPC_NODES
     default: '{node0: "http://127.0.0.1:8545"}'
     constructor: !!python/name:yaml.load
   nodes: !!python/name:ethexporter.scraper.web3.nodes
-
+  transaction:
+    from: !envvar:ETHEXPORTER_ACCOUNTS_TO
+      default: '[]'
+      constructor: !!python/name:yaml.load
+    to: !envvar:ETHEXPORTER_ACCOUNTS_FROM
+      default: '[]'
+      constructor: !!python/name:yaml.load
+  transaction_senders: []
 eth_gauge: &eth_gauge
   type: gauge
   setter: !!python/object/new:operator.attrgetter
@@ -16,26 +28,41 @@ eth_gauge: &eth_gauge
       url: '{url}'
 
 scrapers:
-  lastblock: !!python/name:ethexporter.scraper.web3.lastblock
+  local_transactions: !!python/name:ethexporter.scraper.parity.local_transactions
 
 metrics:
   eth_lastblock_number:
     <<: *eth_gauge
     description: 'ethereum lastblock'
-    scraper: !!python/name:ethexporter.scraper.web3.eth_lastblock_number
-  eth_lastblock_size:
+    scraper: !!python/name:ethexporter.scraper.eth.lastblock_number
+
+  parity_local_transactions_total:
     <<: *eth_gauge
-    description: 'ethereum lastblock size'
-    scraper: !!python/name:ethexporter.scraper.web3.eth_lastblock_size
-  eth_gas_limit:
+    description: 'pool transactions queued or pending'
+    scraper: !!python/name:ethexporter.scraper.parity.local_transactions_total
+    options:
+      labels:
+        node: '{node}'
+        url: '{url}'
+        status: '{local_transaction_status}'
+
+  tx_most_recent_block_number:
     <<: *eth_gauge
-    description: 'ethereum gas limit'
-    scraper: !!python/name:ethexporter.scraper.web3.eth_gas_limit
-  eth_gas_used:
-    <<: *eth_gauge
-    description: 'ethereum gas used'
-    scraper: !!python/name:ethexporter.scraper.web3.eth_gas_used
+    description: 'most recent block with transactions on account'
+    scraper: !!python/name:ethexporter.scraper.tx.most_recent_block_number
+    options:
+      labels:
+        node: '{node}'
+        url: '{url}'
+        account: '{account}'
+        direction: '{direction}'
+        contract_name: '{token_contract_name}'
 
 gather: !envvar:ETHEXPORTER_GATHER
     default: 'null'
     constructor: !!python/name:yaml.load
+
+block:
+  data: !!python/object/apply:lru.LRU
+    - !envvar:ETHEXPORTER_BLOCKS_CACHE_SIZE
+      default: 1024
