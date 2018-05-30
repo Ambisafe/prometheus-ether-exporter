@@ -3,6 +3,7 @@ from prometheus_aioexporter.script import PrometheusExporterScript
 from prometheus_aioexporter.metric import MetricConfig
 from functools import lru_cache
 import asyncio
+import aiohttp
 import prometheus_client.core
 import logging
 import sys
@@ -23,7 +24,6 @@ class Web3Exporter(PrometheusExporterScript):
         parser.add_argument('--rpc', nargs='*', default=None, help='Web3 RPC url(s)')
         parser.add_argument('--nodes', nargs='*', default=[], help='Name(s) for RPC url(s)')
         parser.add_argument('--gather', nargs='*', default=None, help=f'Limit gathered metrics to {list(config.metrics.keys())!r}')
-
 
     def configure(self, args):
         if args.rpc is not None:
@@ -60,25 +60,24 @@ class Web3Exporter(PrometheusExporterScript):
         for name in sorted(_metrics):
             yield name, _metrics[name]
 
-
     @property
     @lru_cache(maxsize=1)
     def metrics(self):
         return list(self._iter_metrics())
 
-
     async def _update_handler(self, application):
         # Stop other asyncio tasks at application shutdown
-        _request_delta = time.time() - self._last_request_time
-        if  _request_delta > config.scrape_throttle:
-            _log.debug('args', extra=application)
-            await self.scrape_metrics(application)
-            context.reset() #contextvar support in asyncio added only in py37
-            self._last_request_time = time.time()
-        else:
-            _log.debug(f'throttling after {_request_delta!r}')
-
-
+        try:
+            _request_delta = time.time() - self._last_request_time
+            if  _request_delta > config.scrape['throttle']:
+                _log.debug('args', extra=application)
+                await self.scrape_metrics(application)
+                await context.reset() #contextvar support in asyncio added only in py37
+                self._last_request_time = time.time()
+            else:
+                _log.debug(f'throttling after {_request_delta!r}')
+        except (asyncio.CancelledError,  aiohttp.ClientDisconnectedError) as e:
+            log.exception(e)
 
     async def scrape_metrics(self, application):
         for name, declaration in self.metrics:
