@@ -1,0 +1,59 @@
+version: '2.1'
+
+services:
+  exporter:
+    image: ambisafe1/prometheus-ether-exporter:latest
+    container_name: prometheus_ethexporter
+    command:
+      -H 0.0.0.0
+      -p 9306
+      --rpc http://104.198.194.160:8545
+      --gather eth_lastblock_number tx_most_recent_block_number parity_local_transactions_total
+    restart: always
+    expose:
+      - 9306
+    ports:
+      - 9306:9306
+    networks:
+      ethexporter:
+        ipv4_address: 172.10.2.14
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: supernode_prometheus_server
+    volumes:
+      - ".prometheus:/etc/prometheus"
+    expose:
+      - 9090
+    ports:
+      - 9090:9090
+    networks:
+      ethexporter:
+        ipv4_address: 172.10.2.17
+
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: supernode_grafana_server
+    environment:
+      - GF_PATHS_CONFIG=/etc/grafana/grafana.ini
+    volumes:
+      - "./.grafana:/etc/grafana"
+    expose:
+      - 3000
+    ports:
+      - 3008:3000
+    networks:
+      ethexporter:
+        ipv4_address: 172.10.2.18
+
+
+networks:
+  ethexporter:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.10.2.1/24
+        gateway: 172.10.2.1
