@@ -1,3 +1,4 @@
 prometheus-aioexporter
 aioethereum
 devconfig
+web3==3.16.5
