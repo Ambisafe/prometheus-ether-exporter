@@ -1,5 +1,5 @@
 scrape:
-  throttle: 1
+  throttle: 60
   maxblocks: !envvar:ETHEXPORTER_SCRAPE_MAXBLOCKS
     default: 720
   burst: !envvar:ETHEXPORTER_SCRAPE_BURST
