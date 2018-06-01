@@ -76,7 +76,7 @@ class Web3Exporter(PrometheusExporterScript):
                 self._last_request_time = time.time()
             else:
                 _log.debug(f'throttling after {_request_delta!r}')
-        except (asyncio.CancelledError,  aiohttp.ClientDisconnectedError) as e:
+        except asyncio.CancelledError as e:
             log.exception(e)
 
     async def scrape_metrics(self, application):
