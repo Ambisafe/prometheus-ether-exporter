@@ -1,5 +1,7 @@
 scrape:
-  throttle: 60
+  throttle: !envvar:ETHEXPORTER_THROTTLE
+    default: 60
+    constructor: !!python/name:int
   maxblocks: !envvar:ETHEXPORTER_SCRAPE_MAXBLOCKS
     default: 720
   burst: !envvar:ETHEXPORTER_SCRAPE_BURST
