@@ -14,4 +14,4 @@ async def etherscan_lastblock_number(context, url='https://api.etherscan.io/api?
                 url=url,
             )
             if response.status == 200:
-                yield asyncio.ensure_future(convert_lastblock_number(response.json(loads=ujson.loads))), {}
+                yield asyncio.ensure_future(convert_lastblock_number(response.json(loads=ujson.loads))), {'source': url}
