@@ -24,6 +24,7 @@ class Web3Exporter(PrometheusExporterScript):
         parser.add_argument('--rpc', nargs='*', default=None, help='Web3 RPC url(s)')
         parser.add_argument('--nodes', nargs='*', default=[], help='Name(s) for RPC url(s)')
         parser.add_argument('--gather', nargs='*', default=None, help=f'Limit gathered metrics to {list(config.metrics.keys())!r}')
+        parser.add_argument('--etherscan-lastblock-url', default=config.metrics['etherscan_lastblock_number']['options']['etherscan_url'], help=f"Url for etherscan lastblock request")
 
     def configure(self, args):
         if args.rpc is not None:
@@ -49,6 +50,7 @@ class Web3Exporter(PrometheusExporterScript):
             ungather = [metric_name for metric_name in self.registry._metrics if metric_name not in gather]
             for metric_name in ungather:
                 del self.registry._metrics[metric_name]
+        config.metrics['etherscan_lastblock_number']['options']['etherscan_url'] = args.etherscan_lastblock_url
         _log.info('gathering', extra={'metrics': list(self.registry._metrics)})
 
     async def on_application_startup(self, application):

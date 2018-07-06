@@ -8,7 +8,9 @@ _log = logging.getLogger(__name__)
 async def convert_lastblock_number(response):
     return int((await response)['result'], 16)
 
-async def etherscan_lastblock_number(context, url='https://api.etherscan.io/api?module=proxy&action=eth_blockNumber'):
+async def etherscan_lastblock_number(context):
+    from ethexporter import config
+    url = config.metrics['etherscan_lastblock_number']['options']['etherscan_url']
     async with ClientSession() as client:
             response =  await client.get(
                 url=url,

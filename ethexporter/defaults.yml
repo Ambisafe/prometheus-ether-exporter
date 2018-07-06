@@ -40,9 +40,10 @@ metrics:
 
   etherscan_lastblock_number:
     <<: *eth_gauge
-    description: 'lastblock number according to https://api.etherscan.io/api?module=proxy&action=eth_blockNumber'
+    description: 'lastblock number according to external etherscan'
     scraper: !!python/name:ethexporter.scraper.http.etherscan_lastblock_number
     options:
+      etherscan_url: https://api.etherscan.io/api?module=proxy&action=eth_blockNumber
       labels:
         source: '{source}'
 
