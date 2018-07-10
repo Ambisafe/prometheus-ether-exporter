@@ -1,3 +1,4 @@
+http_metrics: True
 scrape:
   throttle: !envvar:ETHEXPORTER_THROTTLE
     default: 60

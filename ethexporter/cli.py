@@ -24,7 +24,12 @@ class Web3Exporter(PrometheusExporterScript):
         parser.add_argument('--rpc', nargs='*', default=None, help='Web3 RPC url(s)')
         parser.add_argument('--nodes', nargs='*', default=[], help='Name(s) for RPC url(s)')
         parser.add_argument('--gather', nargs='*', default=None, help=f'Limit gathered metrics to {list(config.metrics.keys())!r}')
-        parser.add_argument('--etherscan-lastblock-url', default=config.metrics['etherscan_lastblock_number']['options']['etherscan_url'], help=f"Url for etherscan lastblock request")
+        parser.add_argument('--etherscan-lastblock-url', default=config.metrics['etherscan_lastblock_number']['options']['etherscan_url'], help="URL for etherscan lastblock request")
+        parser.add_argument('--disable-http-metrics',
+                                action="store_false",
+                                dest="http_metrics",
+                                default=None,
+                                help="Trigger to enable/disable http duration metrics")
 
     def configure(self, args):
         if args.rpc is not None:
@@ -34,18 +39,26 @@ class Web3Exporter(PrometheusExporterScript):
             config.initial['urls'] = dict(zip(args.nodes[:len(args.rpc)], args.rpc))
             context._source['urls'] = config.initial['urls']
 
+        if args.http_metrics is not None:
+            config.http_metrics = args.http_metrics
+
         declarations = []
         for name, declaration in self.metrics:
             declarations.append(MetricConfig(name,
                                         declaration['description'],
                                         declaration['type'],
                                         declaration['options']))
+        if config.http_metrics:
+            declarations.append(MetricConfig('http_response_time_seconds',
+                                        "HTTP response time in seconds",
+                                        'histogram',
+                                        {'labels': ['rpc_method', 'method', 'url', 'node']}))
         self.create_metrics(declarations)
         self._last_request_time = 0
 
         if args.gather:
             config.gather = args.gather
-        gather = getattr(config, 'gather', None)
+        gather = getattr(config, 'gather', None) + (['http_response_time_seconds',] if config.http_metrics else [])
         if gather is not None:
             ungather = [metric_name for metric_name in self.registry._metrics if metric_name not in gather]
             for metric_name in ungather:
